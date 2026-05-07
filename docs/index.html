@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClaudeLauncher — Claude Code im Finder, lokal oder API</title>
+<meta name="description" content="Native macOS-App: ein Klick im Finder öffnet Claude Code mit Anthropic-API oder lokalem LLM (Ollama / LM Studio). Eingebauter Proxy mit Tool-Use-Translation.">
+<link rel="icon" type="image/png" href="icon.png">
+<style>
+:root {
+    --bg: #fafaf7;
+    --bg-card: #ffffff;
+    --text: #1a1a1a;
+    --text-dim: #5a5a5a;
+    --text-muted: #888;
+    --accent: #ee7e2c;
+    --accent-strong: #d44a1d;
+    --accent-soft: #fff4e8;
+    --border: #e8e3da;
+    --code-bg: #1a1a1a;
+    --code-text: #f5f5f0;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #131110;
+        --bg-card: #1d1a17;
+        --text: #f4f0eb;
+        --text-dim: #b8b3aa;
+        --text-muted: #888080;
+        --accent: #f08e44;
+        --accent-strong: #e85d2c;
+        --accent-soft: #2a1f17;
+        --border: #2c2823;
+        --code-bg: #0a0908;
+        --code-text: #f5f5f0;
+    }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+a { color: var(--accent-strong); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.92em;
+}
+
+.container {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* HERO */
+.hero {
+    padding: 96px 0 80px;
+    background:
+        radial-gradient(ellipse 800px 600px at 50% -150px, var(--accent-soft) 0%, transparent 70%),
+        var(--bg);
+    text-align: center;
+}
+
+.hero-icon {
+    width: 128px;
+    height: 128px;
+    margin: 0 auto 28px;
+    border-radius: 28px;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.4) inset,
+        0 22px 40px -10px rgba(214, 71, 31, 0.35);
+    transition: transform 0.3s ease;
+}
+.hero-icon:hover { transform: scale(1.04); }
+
+.hero h1 {
+    font-size: clamp(36px, 6vw, 56px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    background: linear-gradient(180deg, var(--text) 50%, var(--accent-strong) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.hero p {
+    font-size: clamp(17px, 2.2vw, 21px);
+    color: var(--text-dim);
+    max-width: 620px;
+    margin: 0 auto 36px;
+}
+
+.hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-strong) 100%);
+    color: #fff;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 17px;
+    box-shadow: 0 8px 24px -8px rgba(214, 71, 31, 0.5);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.hero-cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px -8px rgba(214, 71, 31, 0.6);
+    text-decoration: none;
+}
+.hero-cta:active { transform: translateY(0); }
+
+.hero-meta {
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.hero-meta a { color: var(--text-muted); margin: 0 6px; }
+
+/* SECTION */
+section { padding: 80px 0; }
+
+section h2 {
+    font-size: clamp(28px, 4vw, 36px);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin-bottom: 14px;
+    text-align: center;
+}
+
+section .sub {
+    color: var(--text-dim);
+    font-size: 17px;
+    text-align: center;
+    margin-bottom: 48px;
+    max-width: 580px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* FEATURES */
+.features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+}
+
+.feature {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 28px 26px;
+    border-radius: 16px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.feature:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -12px rgba(0,0,0,0.15);
+}
+
+.feature .symbol {
+    width: 42px; height: 42px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 22px;
+}
+
+.feature h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.feature p {
+    color: var(--text-dim);
+    font-size: 15px;
+}
+
+/* INSTALL STEPS */
+.install {
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.steps {
+    counter-reset: step;
+    max-width: 720px;
+    margin: 0 auto;
+    display: grid;
+    gap: 16px;
+}
+
+.step {
+    display: flex;
+    gap: 20px;
+    padding: 22px 24px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+.step::before {
+    counter-increment: step;
+    content: counter(step);
+    flex: 0 0 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-strong) 100%);
+    color: #fff;
+    font-weight: 700;
+    font-size: 15px;
+}
+.step h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.step p {
+    color: var(--text-dim);
+    font-size: 14.5px;
+}
+
+/* DEMO / SHOWCASE */
+.showcase {
+    text-align: center;
+}
+
+.terminal {
+    max-width: 720px;
+    margin: 0 auto;
+    background: var(--code-bg);
+    color: var(--code-text);
+    border-radius: 14px;
+    text-align: left;
+    overflow: hidden;
+    box-shadow: 0 18px 48px -16px rgba(0,0,0,0.4);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.65;
+}
+
+.terminal-bar {
+    background: #2a2724;
+    padding: 10px 14px;
+    display: flex;
+    gap: 7px;
+    align-items: center;
+}
+.terminal-bar .dot {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: #555;
+}
+.terminal-bar .dot.r { background: #ff5f56; }
+.terminal-bar .dot.y { background: #ffbd2e; }
+.terminal-bar .dot.g { background: #27c93f; }
+.terminal-bar .title {
+    color: #aaa;
+    font-size: 12px;
+    margin-left: 12px;
+}
+
+.terminal-body { padding: 16px 22px 22px; }
+
+.term-banner {
+    color: #5cd6e0;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+.term-prompt { color: #98c379; }
+.term-cmd { color: #f5f5f0; }
+.term-out { color: #b8b3aa; }
+
+/* FOOTER */
+footer {
+    padding: 60px 0 80px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+footer a { color: var(--text-dim); }
+footer p + p { margin-top: 6px; }
+
+/* badge */
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin-bottom: 18px;
+    text-transform: uppercase;
+}
+
+@media (max-width: 640px) {
+    section { padding: 60px 0; }
+    .hero { padding: 64px 0 56px; }
+    .step { flex-direction: column; gap: 10px; padding: 18px 20px; }
+    .step::before { width: 32px; height: 32px; flex-basis: auto; }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+    <div class="container">
+        <img src="icon.png" alt="ClaudeLauncher Icon" class="hero-icon">
+        <span class="badge">macOS · v1.0</span>
+        <h1>ClaudeLauncher</h1>
+        <p>Ein Klick im Finder öffnet Claude Code im Terminal — mit der Anthropic-API oder einem lokalen LLM (Ollama / LM&nbsp;Studio). Eingebauter Proxy übersetzt Tool-Use-Calls bidirektional.</p>
+        <a class="hero-cta" href="https://github.com/joelsommerer/ClaudeLauncher/releases/latest/download/ClaudeLauncher-1.0.dmg">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2v13m0 0l-5-5m5 5l5-5M4 19h16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+            Download für macOS
+        </a>
+        <div class="hero-meta">
+            <span>Kostenlos · Open Source · Apple Silicon, macOS 14+</span><br>
+            <a href="https://github.com/joelsommerer/ClaudeLauncher">Quellcode auf GitHub</a> ·
+            <a href="https://github.com/joelsommerer/ClaudeLauncher/releases">Alle Releases</a>
+        </div>
+    </div>
+</header>
+
+<section>
+    <div class="container">
+        <h2>Warum?</h2>
+        <p class="sub">Schneller Zugriff auf Claude Code, Wechsel zwischen API und lokalen Modellen ohne Umweg über Terminals und Konfigurations-Files.</p>
+
+        <div class="features">
+            <div class="feature">
+                <div class="symbol">⌁</div>
+                <h3>Finder-Toolbar-Picker</h3>
+                <p>Ein <code>Claude ▾</code>-Button in der Finder-Toolbar. Klick → Popup mit allen Verbindungen, Default zuoberst. Auswahl → Terminal öffnet am aktuellen Pfad.</p>
+            </div>
+            <div class="feature">
+                <div class="symbol">↹</div>
+                <h3>API ↔ Lokal nach Bedarf</h3>
+                <p>Anthropic-API für ernsthafte Arbeit, Ollama oder LM Studio für lokale Experimente — beides in derselben App, ein Klick zum Wechseln.</p>
+            </div>
+            <div class="feature">
+                <div class="symbol">⚙</div>
+                <h3>Tool-Use-Translation</h3>
+                <p>Eingebauter HTTP-Proxy übersetzt Anthropic-Format ↔ OpenAI-Function-Calling. Bash, Read, Edit funktionieren auch gegen lokale Modelle.</p>
+            </div>
+            <div class="feature">
+                <div class="symbol">∅</div>
+                <h3>Keine Dependencies</h3>
+                <p>Reines Swift, keine Node/Python-Runtimes. Eine 524 KB DMG, in /Applications ziehen, fertig.</p>
+            </div>
+            <div class="feature">
+                <div class="symbol">↻</div>
+                <h3>Auto-Sync</h3>
+                <p>Connection hinzugefügt, umbenannt oder gelöscht? Quick Actions und Toolbar-Wrapper aktualisieren sich von selbst.</p>
+            </div>
+            <div class="feature">
+                <div class="symbol">⊞</div>
+                <h3>Quick Actions</h3>
+                <p>Rechtsklick auf einen Ordner → eine Quick Action pro Verbindung. Native macOS-Integration via Automator-Workflows.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="install">
+    <div class="container">
+        <h2>Installation in 3 Schritten</h2>
+        <p class="sub">Voraussetzung: macOS 14 (Sonoma) oder neuer auf Apple Silicon. Claude Code CLI installiert.</p>
+
+        <div class="steps">
+            <div class="step">
+                <div>
+                    <h3>DMG herunterladen und öffnen</h3>
+                    <p><a href="https://github.com/joelsommerer/ClaudeLauncher/releases/latest/download/ClaudeLauncher-1.0.dmg">ClaudeLauncher-1.0.dmg</a> doppelklicken — Volume mountet sich automatisch.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div>
+                    <h3>App in /Applications ziehen</h3>
+                    <p>Im DMG-Fenster <code>ClaudeLauncher.app</code> auf den <code>Applications</code>-Symlink ziehen. Beim ersten Start: Rechtsklick auf die App → <em>Öffnen</em> → bestätigen (Gatekeeper, weil ad-hoc-signiert).</p>
+                </div>
+            </div>
+            <div class="step">
+                <div>
+                    <h3>Verbindungen anlegen, Toolbar einbauen</h3>
+                    <p>Im Settings-UI eine Verbindung hinzufügen (API-Key oder lokaler Endpoint), als Default markieren, dann unten <em>Installieren → In Finder-Toolbar einfügen</em>. Finder restartet kurz, der <code>Claude ▾</code>-Button erscheint in jedem Finder-Fenster.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="showcase">
+    <div class="container">
+        <h2>So sieht's im Terminal aus</h2>
+        <p class="sub">Der Banner zeigt direkt welches Backend aktiv ist, bevor Claude Code startet.</p>
+
+        <div class="terminal">
+            <div class="terminal-bar">
+                <span class="dot r"></span>
+                <span class="dot y"></span>
+                <span class="dot g"></span>
+                <span class="title">Claude · QWEN — ~/Projects/my-app</span>
+            </div>
+            <div class="terminal-body">
+                <div class="term-banner">  ⌁ QWEN — LM Studio  qwen/qwen3-coder-next  via proxy :8765 → http://localhost:1234</div>
+                <span class="term-prompt">~/Projects/my-app ❯</span> <span class="term-cmd">claude</span><br>
+                <br>
+                <span class="term-out">Welcome to Claude Code 2.1.132. Type your message or /help for commands.</span><br>
+                <br>
+                <span class="term-prompt">› </span><span class="term-cmd">List all .swift files</span><br>
+                <span class="term-out">⏺ Bash(find . -name "*.swift" -type f)</span><br>
+                <span class="term-out">  ⎿  ./Sources/main.swift</span><br>
+                <span class="term-out">     ./Sources/AppDelegate.swift</span><br>
+                <span class="term-out">     ./Sources/ContentView.swift</span><br>
+                <span class="term-out">     ./Sources/Picker.swift</span><br>
+                <span class="term-out">     ... (15 files total)</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <div class="container">
+        <p>
+            <a href="https://github.com/joelsommerer/ClaudeLauncher">GitHub</a> ·
+            <a href="https://github.com/joelsommerer/ClaudeLauncher/blob/main/LICENSE">MIT License</a> ·
+            <a href="https://github.com/joelsommerer/ClaudeLauncher/issues">Issues</a>
+        </p>
+        <p>Nicht offiziell mit Anthropic verbunden. Claude® ist eine Marke von Anthropic, PBC.</p>
+    </div>
+</footer>
+
+</body>
+</html>
