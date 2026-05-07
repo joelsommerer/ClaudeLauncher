@@ -1,0 +1,6 @@
+build/
+dist/
+*.swiftmodule
+*.swiftdoc
+*.dSYM
+.DS_Store
