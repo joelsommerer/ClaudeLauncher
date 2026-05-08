@@ -82,4 +82,4 @@ Die Tool-Translation ist implementiert — `Bash`, `Read`, `Edit` etc. funktioni
 
 ## License
 
-MIT — siehe [LICENSE](LICENSE).
+Apache License 2.0 — siehe [LICENSE](LICENSE) und [NOTICE](NOTICE).
